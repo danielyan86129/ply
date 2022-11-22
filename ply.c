@@ -476,8 +476,9 @@ void put_element_ply(PlyFile *plyfile, void *elem_ptr) {
         write_ascii_item(fp, int_val, uint_val, double_val,
                          prop->count_external);
         list_count = uint_val;
-        item_ptr = (char **)(elem_data + prop->offset);
-        item = item_ptr[0];
+        // item_ptr = (char **)(elem_data + prop->offset);
+        // item = item_ptr[0];
+        item = (char *)(elem_data + prop->offset);
         item_size = ply_type_size[prop->internal_type];
         for (k = 0; k < list_count; k++) {
           get_stored_item((void *)item, prop->internal_type, &int_val,
