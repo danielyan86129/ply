@@ -43,18 +43,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* user's vertex and face definitions for a polygonal object */
 
-typedef struct Vertex {
-  float x, y, z, w; /* position */
-  float nx, ny, nz; /* surface normal */
-  float s, t;       /* texture coordinates */
+typedef struct Vertex
+{
+    float x, y, z, w; /* position */
+    float nx, ny, nz; /* surface normal */
+    float s, t;       /* texture coordinates */
 } Vertex;
 
-typedef struct Face {
-  unsigned char nverts; /* number of vertex indices in list */
-  int *verts;           /* vertex index list */
+typedef struct Face
+{
+    unsigned char nverts; /* number of vertex indices in list */
+    int* verts;           /* vertex index list */
 } Face;
 
-char *elem_names[] = {/* list of the kinds of elements in the user's object */
+char* elem_names[] = {/* list of the kinds of elements in the user's object */
                       "vertex", "face"};
 
 PlyProperty vert_props[] = {
@@ -80,24 +82,24 @@ PlyProperty face_props[] = {
 
 static int nverts = 0;
 static int max_verts = 0;
-static Vertex *vlist;
+static Vertex* vlist;
 
 static int nfaces = 0;
 static int max_faces = 0;
-static Face *flist;
+static Face* flist;
 
 static int nelems = 2;
 
 static int ncomments = 0;
 static int max_comments = 0;
-static char **comments = NULL;
+static char** comments = NULL;
 
 static int texture_coords = 0;
 static int has_normals = 0;
 static int has_w = 0;
 
 /* for file reading */
-static char **words;
+static char** words;
 static int max_words = 0;
 static int num_words = 0;
 #define BIG_STRING 4096
@@ -109,46 +111,50 @@ static int flip_vertex_order = 1;
 Main program.
 ******************************************************************************/
 
-main(int argc, char *argv[]) {
-  int i, j;
-  char *s;
-  char *progname;
-  int num_major = 20;
-  int num_minor = 20;
-  float r_major = 1;
-  float r_minor = 0.5;
+main(int argc, char* argv[])
+{
+    int i, j;
+    char* s;
+    char* progname;
+    int num_major = 20;
+    int num_minor = 20;
+    float r_major = 1;
+    float r_minor = 0.5;
 
-  progname = argv[0];
+    progname = argv[0];
 
-  while (--argc > 0 && (*++argv)[0] == '-') {
-    for (s = argv[0] + 1; *s; s++)
-      switch (*s) {
-      case 'f':
-        flip_vertex_order = 1 - flip_vertex_order;
-        break;
+    while (--argc > 0 && (*++argv)[0] == '-')
+    {
+        for (s = argv[0] + 1; *s; s++)
+            switch (*s)
+            {
+                case 'f':
+                    flip_vertex_order = 1 - flip_vertex_order;
+                    break;
 #if 0
         case 't':
           texture_coords = 1 - texture_coords;
           break;
 #endif
-      default:
-        usage(progname);
-        exit(-1);
-        break;
-      }
-  }
+                default:
+                    usage(progname);
+                    exit(-1);
+                    break;
+            }
+    }
 
-  read_obj();
-  write_file();
+    read_obj();
+    write_file();
 }
 
 /******************************************************************************
 Print out usage information.
 ******************************************************************************/
 
-usage(char *progname) {
-  fprintf(stderr, "usage: %s [flags] <in.obj >out.ply\n", progname);
-  fprintf(stderr, "       -f { flip vertex order in polygons }\n");
+usage(char* progname)
+{
+    fprintf(stderr, "usage: %s [flags] <in.obj >out.ply\n", progname);
+    fprintf(stderr, "       -f { flip vertex order in polygons }\n");
 }
 
 /******************************************************************************
@@ -158,24 +164,28 @@ Entry:
   x,y,z,w - 3D positions, maybe with homogeneous component
 ******************************************************************************/
 
-make_vertex(float x, float y, float z, float w) {
-  Vertex *v;
+make_vertex(float x, float y, float z, float w)
+{
+    Vertex* v;
 
-  /* see if we need to allocate space for vertices */
+    /* see if we need to allocate space for vertices */
 
-  if (max_verts == 0) {
-    max_verts = 200;
-    vlist = (Vertex *)malloc(sizeof(Vertex) * max_verts);
-  } else if (nverts == max_verts) {
-    max_verts *= 2;
-    vlist = (Vertex *)realloc(vlist, sizeof(Vertex) * max_verts);
-  }
+    if (max_verts == 0)
+    {
+        max_verts = 200;
+        vlist = (Vertex*)malloc(sizeof(Vertex) * max_verts);
+    }
+    else if (nverts == max_verts)
+    {
+        max_verts *= 2;
+        vlist = (Vertex*)realloc(vlist, sizeof(Vertex) * max_verts);
+    }
 
-  v = &vlist[nverts++];
-  v->x = x;
-  v->y = y;
-  v->z = z;
-  v->w = w;
+    v = &vlist[nverts++];
+    v->x = x;
+    v->y = y;
+    v->z = z;
+    v->w = w;
 }
 
 /******************************************************************************
@@ -191,36 +201,39 @@ Exit:
   nindex - third number (normal vector index)
 ******************************************************************************/
 
-get_indices(char *word, int *vindex, int *tindex, int *nindex) {
-  char *null = " ";
-  char *ptr;
-  char *tp;
-  char *np;
+get_indices(char* word, int* vindex, int* tindex, int* nindex)
+{
+    char* null = " ";
+    char* ptr;
+    char* tp;
+    char* np;
 
-  /* by default, the texture and normal pointers are set to the null string */
+    /* by default, the texture and normal pointers are set to the null string */
 
-  tp = null;
-  np = null;
+    tp = null;
+    np = null;
 
-  /* replace slashes with null characters and cause tp and np to point */
-  /* to character immediately following the first or second slash */
+    /* replace slashes with null characters and cause tp and np to point */
+    /* to character immediately following the first or second slash */
 
-  for (ptr = word; *ptr != '\0'; ptr++) {
+    for (ptr = word; *ptr != '\0'; ptr++)
+    {
 
-    if (*ptr == '/') {
+        if (*ptr == '/')
+        {
 
-      if (tp == null)
-        tp = ptr + 1;
-      else
-        np = ptr + 1;
+            if (tp == null)
+                tp = ptr + 1;
+            else
+                np = ptr + 1;
 
-      *ptr = '\0';
+            *ptr = '\0';
+        }
     }
-  }
 
-  *vindex = atoi(word);
-  *tindex = atoi(tp);
-  *nindex = atoi(np);
+    *vindex = atoi(word);
+    *tindex = atoi(tp);
+    *nindex = atoi(np);
 }
 
 /******************************************************************************
@@ -231,61 +244,69 @@ Entry:
   nwords - number of words in list
 ******************************************************************************/
 
-make_face(char **words, int nwords) {
-  static int warning = 0;
-  int i, ii;
-  Face *f;
-  int vindex;
-  int nindex;
-  int tindex;
+make_face(char** words, int nwords)
+{
+    static int warning = 0;
+    int i, ii;
+    Face* f;
+    int vindex;
+    int nindex;
+    int tindex;
 
-  /* see if we need to allocate space for vertices */
+    /* see if we need to allocate space for vertices */
 
-  if (max_faces == 0) {
-    max_faces = 200;
-    flist = (Face *)malloc(sizeof(Face) * max_faces);
-  } else if (nfaces == max_faces) {
-    max_faces *= 2;
-    flist = (Face *)realloc(flist, sizeof(Face) * max_faces);
-  }
+    if (max_faces == 0)
+    {
+        max_faces = 200;
+        flist = (Face*)malloc(sizeof(Face) * max_faces);
+    }
+    else if (nfaces == max_faces)
+    {
+        max_faces *= 2;
+        flist = (Face*)realloc(flist, sizeof(Face) * max_faces);
+    }
 
-  f = &flist[nfaces++];
-  f->nverts = nwords;
-  f->verts = (int *)malloc(sizeof(int) * nwords);
+    f = &flist[nfaces++];
+    f->nverts = nwords;
+    f->verts = (int*)malloc(sizeof(int) * nwords);
 
-  for (i = 0; i < nwords; i++) {
+    for (i = 0; i < nwords; i++)
+    {
 
-    get_indices(words[i], &vindex, &tindex, &nindex);
+        get_indices(words[i], &vindex, &tindex, &nindex);
 
 #if 0
 printf ("vtn: %d %d %d\n", vindex, tindex, nindex);
 #endif
 
-    /* maybe flip vertex order */
+        /* maybe flip vertex order */
 
-    if (flip_vertex_order)
-      ii = nwords - i - 1;
-    else
-      ii = i;
+        if (flip_vertex_order)
+            ii = nwords - i - 1;
+        else
+            ii = i;
 
-    /* store the vertex index */
+        /* store the vertex index */
 
-    if (vindex > 0) /* indices are from one, not zero */
-      f->verts[ii] = vindex - 1;
-    else if (vindex < 0) /* negative indices mean count backwards */
-      f->verts[ii] = nverts + vindex;
-    else {
-      fprintf(stderr, "Zero indices not allowed: '%s'\n", str_orig);
-      exit(-1);
+        if (vindex > 0) /* indices are from one, not zero */
+            f->verts[ii] = vindex - 1;
+        else if (vindex < 0) /* negative indices mean count backwards */
+            f->verts[ii] = nverts + vindex;
+        else
+        {
+            fprintf(stderr, "Zero indices not allowed: '%s'\n", str_orig);
+            exit(-1);
+        }
+
+        if ((tindex != 0 || nindex != 0) && warning == 0)
+        {
+            fprintf(stderr, "\n");
+            fprintf(stderr,
+                    "Warning: textures and normals currently ignored.\n");
+            fprintf(stderr, "\n");
+            warning = 1;
+        }
     }
-
-    if ((tindex != 0 || nindex != 0) && warning == 0) {
-      fprintf(stderr, "\n");
-      fprintf(stderr, "Warning: textures and normals currently ignored.\n");
-      fprintf(stderr, "\n");
-      warning = 1;
-    }
-  }
 }
 
 /******************************************************************************
@@ -295,20 +316,23 @@ Entry:
   comment - comment to tuck away
 ******************************************************************************/
 
-make_comment(char *comment) {
-  /* see if we need to allocate space for comments */
+make_comment(char* comment)
+{
+    /* see if we need to allocate space for comments */
 
-  if (max_comments == 0) {
-    max_comments = 10;
-    comments = (char **)malloc(sizeof(char *) * max_comments);
-  }
-  if (ncomments == max_comments) {
-    max_comments += 10;
-    comments = (char **)realloc(comments, sizeof(char *) * max_comments);
-  }
+    if (max_comments == 0)
+    {
+        max_comments = 10;
+        comments = (char**)malloc(sizeof(char*) * max_comments);
+    }
+    if (ncomments == max_comments)
+    {
+        max_comments += 10;
+        comments = (char**)realloc(comments, sizeof(char*) * max_comments);
+    }
 
-  comments[ncomments] = strdup(comment);
-  ncomments++;
+    comments[ncomments] = strdup(comment);
+    ncomments++;
 }
 
 /******************************************************************************
@@ -321,68 +345,79 @@ Exit:
   returns a pointer to comments or NULL if not a comment line or -1 if EOF
 ******************************************************************************/
 
-char *fetch_line(FILE *fp) {
-  int i, j;
-  char *ptr;
-  char *ptr2;
-  char *result;
-  char *comment_ptr;
+char* fetch_line(FILE* fp)
+{
+    int i, j;
+    char* ptr;
+    char* ptr2;
+    char* result;
+    char* comment_ptr;
 
-  /* read in a line */
-  result = fgets(str, BIG_STRING, fp);
+    /* read in a line */
+    result = fgets(str, BIG_STRING, fp);
 
-  /* return NULL if we're at the end-of-file */
-  if (result == NULL)
-    return ((char *)-1);
+    /* return NULL if we're at the end-of-file */
+    if (result == NULL)
+        return ((char*)-1);
 
-  /* convert line-feed and tabs into spaces */
-  /* (this guarentees that there will be a space before the */
-  /*  null character at the end of the string) */
+    /* convert line-feed and tabs into spaces */
+    /* (this guarentees that there will be a space before the */
+    /*  null character at the end of the string) */
 
-  str[BIG_STRING - 2] = ' ';
-  str[BIG_STRING - 1] = '\0';
+    str[BIG_STRING - 2] = ' ';
+    str[BIG_STRING - 1] = '\0';
 
-  for (ptr = str; *ptr != '\0'; ptr++) {
-    if (*ptr == '\t') {
-      *ptr = ' ';
-    } else if (*ptr == '\n') {
-      *ptr = ' ';
-      break;
+    for (ptr = str; *ptr != '\0'; ptr++)
+    {
+        if (*ptr == '\t')
+        {
+            *ptr = ' ';
+        }
+        else if (*ptr == '\n')
+        {
+            *ptr = ' ';
+            break;
+        }
     }
-  }
 
-  /* copy the line */
-  for (ptr = str, ptr2 = str_orig; *ptr != '\0'; ptr++, ptr2++)
-    *ptr2 = *ptr;
-  *ptr2 = '\0';
+    /* copy the line */
+    for (ptr = str, ptr2 = str_orig; *ptr != '\0'; ptr++, ptr2++)
+        *ptr2 = *ptr;
+    *ptr2 = '\0';
 
-  /* look to see if this is a comment line (first non-space is '#') */
+    /* look to see if this is a comment line (first non-space is '#') */
 
-  for (ptr = str; *ptr != '\0'; ptr++) {
-    if (*ptr == '#') {
-      ptr++;
-      while (*ptr == ' ')
+    for (ptr = str; *ptr != '\0'; ptr++)
+    {
+        if (*ptr == '#')
+        {
+            ptr++;
+            while (*ptr == ' ')
+                ptr++;
+            return (ptr);
+        }
+        else if (*ptr != ' ')
+        {
+            break;
+        }
+    }
+
+    /* if we get here, we've got a non-comment line */
+
+    /* strip off trailing comments */
+
+    while (*ptr != '\0')
+    {
+        if (*ptr == '#')
+        {
+            *ptr++ = ' ';
+            *ptr = '\0';
+            break;
+        }
         ptr++;
-      return (ptr);
-    } else if (*ptr != ' ') {
-      break;
     }
-  }
 
-  /* if we get here, we've got a non-comment line */
-
-  /* strip off trailing comments */
-
-  while (*ptr != '\0') {
-    if (*ptr == '#') {
-      *ptr++ = ' ';
-      *ptr = '\0';
-      break;
-    }
-    ptr++;
-  }
-
-  return (NULL);
+    return (NULL);
 }
 
 /******************************************************************************
@@ -392,162 +427,184 @@ Exit:
   returns the number of words in the line
 ******************************************************************************/
 
-int fetch_words() {
-  char *ptr;
+int fetch_words()
+{
+    char* ptr;
 
-  /* allocate room for words if necessary */
-  if (max_words == 0) {
-    max_words = 20;
-    words = (char **)malloc(sizeof(char *) * max_words);
-  }
-
-  /* find the words in the line */
-
-  ptr = str;
-  num_words = 0;
-
-  while (*ptr != '\0') {
-
-    /* jump over leading spaces */
-    while (*ptr == ' ')
-      ptr++;
-
-    /* break if we reach the end */
-    if (*ptr == '\0')
-      break;
-
-    /* allocate more room for words if necessary */
-    if (num_words >= max_words) {
-      max_words += 10;
-      words = (char **)realloc(words, sizeof(char *) * max_words);
+    /* allocate room for words if necessary */
+    if (max_words == 0)
+    {
+        max_words = 20;
+        words = (char**)malloc(sizeof(char*) * max_words);
     }
 
-    /* save pointer to beginning of word */
-    words[num_words++] = ptr;
+    /* find the words in the line */
 
-    /* jump over non-spaces */
-    while (*ptr != ' ')
-      ptr++;
+    ptr = str;
+    num_words = 0;
 
-    /* place a null character here to mark the end of the word */
-    *ptr++ = '\0';
-  }
+    while (*ptr != '\0')
+    {
 
-  /* return the number of words */
-  return (num_words);
+        /* jump over leading spaces */
+        while (*ptr == ' ')
+            ptr++;
+
+        /* break if we reach the end */
+        if (*ptr == '\0')
+            break;
+
+        /* allocate more room for words if necessary */
+        if (num_words >= max_words)
+        {
+            max_words += 10;
+            words = (char**)realloc(words, sizeof(char*) * max_words);
+        }
+
+        /* save pointer to beginning of word */
+        words[num_words++] = ptr;
+
+        /* jump over non-spaces */
+        while (*ptr != ' ')
+            ptr++;
+
+        /* place a null character here to mark the end of the word */
+        *ptr++ = '\0';
+    }
+
+    /* return the number of words */
+    return (num_words);
 }
 
 /******************************************************************************
 Read in a Wavefront OBJ file.
 ******************************************************************************/
 
-read_obj() {
-  int i, j, k;
-  FILE *fp;
-  int nwords;
-  char *comment_ptr;
-  char *first_word;
-  float x, y, z, w;
+read_obj()
+{
+    int i, j, k;
+    FILE* fp;
+    int nwords;
+    char* comment_ptr;
+    char* first_word;
+    float x, y, z, w;
 
-  /* read from standard input */
-  fp = stdin;
+    /* read from standard input */
+    fp = stdin;
 
-  while (1) {
+    while (1)
+    {
 
-    comment_ptr = fetch_line(fp);
+        comment_ptr = fetch_line(fp);
 
-    if (comment_ptr == (char *)-1) /* end-of-file */
-      break;
+        if (comment_ptr == (char*)-1) /* end-of-file */
+            break;
 
-    /* did we get a comment? */
-    if (comment_ptr) {
-      make_comment(comment_ptr);
-      continue;
+        /* did we get a comment? */
+        if (comment_ptr)
+        {
+            make_comment(comment_ptr);
+            continue;
+        }
+
+        /* if we get here, the line was not a comment */
+
+        nwords = fetch_words();
+
+        /* skip empty lines */
+        if (nwords == 0)
+            continue;
+
+        first_word = words[0];
+
+        if (equal_strings(first_word, "v"))
+        {
+            if (nwords < 4)
+            {
+                fprintf(stderr, "Too few coordinates: '%s'", str_orig);
+                exit(-1);
+            }
+            x = atof(words[1]);
+            y = atof(words[2]);
+            z = atof(words[3]);
+            if (nwords == 5)
+            {
+                w = atof(words[3]);
+                has_w = 1;
+            }
+            else
+                w = 1.0;
+            make_vertex(x, y, z, w);
+        }
+        else if (equal_strings(first_word, "vn"))
+        {
+        }
+        else if (equal_strings(first_word, "vt"))
+        {
+        }
+        else if (equal_strings(first_word, "f"))
+        {
+            make_face(&words[1], nwords - 1);
+        }
+        else
+        {
+            fprintf(stderr, "Do not recognize: '%s'\n", str_orig);
+        }
     }
-
-    /* if we get here, the line was not a comment */
-
-    nwords = fetch_words();
-
-    /* skip empty lines */
-    if (nwords == 0)
-      continue;
-
-    first_word = words[0];
-
-    if (equal_strings(first_word, "v")) {
-      if (nwords < 4) {
-        fprintf(stderr, "Too few coordinates: '%s'", str_orig);
-        exit(-1);
-      }
-      x = atof(words[1]);
-      y = atof(words[2]);
-      z = atof(words[3]);
-      if (nwords == 5) {
-        w = atof(words[3]);
-        has_w = 1;
-      } else
-        w = 1.0;
-      make_vertex(x, y, z, w);
-    } else if (equal_strings(first_word, "vn")) {
-    } else if (equal_strings(first_word, "vt")) {
-    } else if (equal_strings(first_word, "f")) {
-      make_face(&words[1], nwords - 1);
-    } else {
-      fprintf(stderr, "Do not recognize: '%s'\n", str_orig);
-    }
-  }
 }
 
 /******************************************************************************
 Write out the PLY file to standard out.
 ******************************************************************************/
 
-write_file() {
-  int i;
-  PlyFile *ply;
-  int num_elem_types;
+write_file()
+{
+    int i;
+    PlyFile* ply;
+    int num_elem_types;
 
-  /*** Write out the transformed PLY object ***/
+    /*** Write out the transformed PLY object ***/
 
-  ply = write_ply(stdout, nelems, elem_names, PLY_ASCII);
+    ply = write_ply(stdout, nelems, elem_names, PLY_ASCII);
 
-  /* describe what properties go into the vertex elements */
+    /* describe what properties go into the vertex elements */
 
-  describe_element_ply(ply, "vertex", nverts);
-  describe_property_ply(ply, &vert_props[0]);
-  describe_property_ply(ply, &vert_props[1]);
-  describe_property_ply(ply, &vert_props[2]);
-  if (has_normals) {
-    describe_property_ply(ply, &vert_props[3]);
-    describe_property_ply(ply, &vert_props[4]);
-    describe_property_ply(ply, &vert_props[5]);
-  }
-  if (texture_coords) {
-    describe_property_ply(ply, &vert_props[6]);
-    describe_property_ply(ply, &vert_props[7]);
-  }
+    describe_element_ply(ply, "vertex", nverts);
+    describe_property_ply(ply, &vert_props[0]);
+    describe_property_ply(ply, &vert_props[1]);
+    describe_property_ply(ply, &vert_props[2]);
+    if (has_normals)
+    {
+        describe_property_ply(ply, &vert_props[3]);
+        describe_property_ply(ply, &vert_props[4]);
+        describe_property_ply(ply, &vert_props[5]);
+    }
+    if (texture_coords)
+    {
+        describe_property_ply(ply, &vert_props[6]);
+        describe_property_ply(ply, &vert_props[7]);
+    }
 
-  describe_element_ply(ply, "face", nfaces);
-  describe_property_ply(ply, &face_props[0]);
+    describe_element_ply(ply, "face", nfaces);
+    describe_property_ply(ply, &face_props[0]);
 
-  for (i = 0; i < ncomments; i++)
-    append_comment_ply(ply, comments[i]);
+    for (i = 0; i < ncomments; i++)
+        append_comment_ply(ply, comments[i]);
 
-  append_comment_ply(ply, "converted from OBJ by obj2ply");
+    append_comment_ply(ply, "converted from OBJ by obj2ply");
 
-  header_complete_ply(ply);
+    header_complete_ply(ply);
 
-  /* set up and write the vertex elements */
-  put_element_setup_ply(ply, "vertex");
-  for (i = 0; i < nverts; i++)
-    put_element_ply(ply, (void *)&vlist[i]);
+    /* set up and write the vertex elements */
+    put_element_setup_ply(ply, "vertex");
+    for (i = 0; i < nverts; i++)
+        put_element_ply(ply, (void*)&vlist[i]);
 
-  /* set up and write the face elements */
-  put_element_setup_ply(ply, "face");
-  for (i = 0; i < nfaces; i++)
-    put_element_ply(ply, (void *)&flist[i]);
+    /* set up and write the face elements */
+    put_element_setup_ply(ply, "face");
+    for (i = 0; i < nfaces; i++)
+        put_element_ply(ply, (void*)&flist[i]);
 
-  close_ply(ply);
-  free_ply(ply);
+    close_ply(ply);
+    free_ply(ply);
 }
